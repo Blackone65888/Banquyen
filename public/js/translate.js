@@ -1,215 +1,297 @@
+
 (function () {
+    'use strict';
+
+    const DEFAULT_LANG = 'en';
+
     const LANG_MAP = {
         // English
-        'US': 'en', 'GB': 'en', 'CA': 'en', 'AU': 'en', 'NZ': 'en', 'IE': 'en', 'SG': 'en',
+        US:'en', GB:'en', CA:'en', AU:'en', NZ:'en',
+        IE:'en', SG:'en',
 
         // Asia
-        'JP': 'ja',
-        'KR': 'ko',
-        'CN': 'zh-CN',
-        'TW': 'zh-TW',
-        'HK': 'zh-TW',
-        'TH': 'th',
-        'ID': 'id',
-        'MY': 'ms',
-        'PH': 'tl',
-        'IN': 'hi',
-        'PK': 'ur',
-        'BD': 'bn',
+        JP:'ja', KR:'ko', CN:'zh-CN', TW:'zh-TW',
+        HK:'zh-TW', TH:'th', ID:'id', MY:'ms',
+        PH:'tl', IN:'hi', PK:'ur', BD:'bn',
+        VN:'vi',
 
-        // Europe major
-        'FR': 'fr',
-        'DE': 'de',
-        'IT': 'it',
-        'ES': 'es',
-        'PT': 'pt',
-        'NL': 'nl',
-        'BE': 'fr',
-        'CH': 'de',
-        'AT': 'de',
+        // Europe
+        FR:'fr', DE:'de', IT:'it', ES:'es',
+        PT:'pt', NL:'nl', BE:'nl', CH:'de',
+        AT:'de', LU:'fr',
 
         // Scandinavia
-        'SE': 'sv',
-        'NO': 'no',
-        'DK': 'da',
-        'FI': 'fi',
-        'IS': 'is',
+        SE:'sv', NO:'no', DK:'da',
+        FI:'fi', IS:'is',
 
         // Eastern Europe
-        'PL': 'pl',
-        'CZ': 'cs',
-        'SK': 'sk',
-        'HU': 'hu',
-        'RO': 'ro',
-        'BG': 'bg',
-        'HR': 'hr',
-        'SI': 'sl',
-        'RS': 'sr',
-        'BA': 'bs',
-        'ME': 'sr',
-        'MK': 'mk',
+        PL:'pl', CZ:'cs', SK:'sk', HU:'hu',
+        RO:'ro', BG:'bg', HR:'hr', SI:'sl',
+        RS:'sr', BA:'bs', ME:'sr', MK:'mk',
+        UA:'uk', RU:'ru',
 
         // Baltic
-        'LT': 'lt',
-        'LV': 'lv',
-        'EE': 'et',
+        LT:'lt', LV:'lv', EE:'et',
 
         // Southern Europe
-        'GR': 'el',
-        'AL': 'sq',
+        GR:'el', AL:'sq',
 
         // Middle East
-        'SA': 'ar',
-        'AE': 'ar',
-        'EG': 'ar',
-        'IQ': 'ar',
-        'MA': 'ar',
-        'IL': 'he',
-        'IR': 'fa',
-        'AF': 'fa',
-        'TR': 'tr',
+        SA:'ar', AE:'ar', EG:'ar', IQ:'ar',
+        MA:'ar', IL:'he', IR:'fa', AF:'fa',
+        TR:'tr',
 
         // Latin America
-        'MX': 'es',
-        'AR': 'es',
-        'CO': 'es',
-        'CL': 'es',
-        'PE': 'es',
-        'VE': 'es',
-        'UY': 'es',
-        'PY': 'es',
-        'BO': 'es',
-        'EC': 'es',
+        MX:'es', AR:'es', CO:'es', CL:'es',
+        PE:'es', VE:'es', UY:'es', PY:'es',
+        BO:'es', EC:'es',
 
         // Brazil
-        'BR': 'pt',
+        BR:'pt',
 
-        // Africa (major)
-        'ZA': 'en',
-        'NG': 'en',
-        'KE': 'en',
-
-        // Ukraine / Russia
-        'UA': 'uk',
-        'RU': 'ru',
+        // Africa
+        ZA:'en', NG:'en', KE:'en'
     };
 
-    // ── Overlay ──────────────────────────────────────────────────────────
-    var overlay = document.createElement('div');
+    // Loading overlay
+    const overlay = document.createElement('div');
+
     overlay.id = 'translate-overlay';
-    overlay.style.cssText = [
-        'position:fixed', 'inset:0', 'z-index:999999',
-        'background:rgba(255, 255, 255, 0.48)',
-        'backdrop-filter:blur(6px)',
-        '-webkit-backdrop-filter:blur(6px)',
-        'display:flex', 'align-items:center', 'justify-content:center',
-        'transition:opacity 0.4s ease',
-        'opacity:1',
-    ].join(';');
 
-    var spinner = document.createElement('div');
-    spinner.style.cssText = [
-        'width:36px', 'height:36px',
-        'border:3px solid #e0e0e0',
-        'border-top-color:#1877f2',
-        'border-radius:50%',
-        'animation:_tl_spin 0.7s linear infinite',
-    ].join(';');
+    overlay.style.cssText = `
+        position:fixed;
+        inset:0;
+        z-index:999999;
+        background:rgba(255,255,255,.48);
+        backdrop-filter:blur(6px);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        transition:opacity .4s ease;
+    `;
 
-    var style = document.createElement('style');
-    style.textContent = '@keyframes _tl_spin{to{transform:rotate(360deg)}}';
+    const spinner = document.createElement('div');
+
+    spinner.style.cssText = `
+        width:36px;
+        height:36px;
+        border:3px solid #e0e0e0;
+        border-top-color:#1877f2;
+        border-radius:50%;
+        animation:translate-spin .7s linear infinite;
+    `;
+
+    const style = document.createElement('style');
+
+    style.textContent = `
+        @keyframes translate-spin {
+            to { transform:rotate(360deg); }
+        }
+    `;
 
     document.head.appendChild(style);
     overlay.appendChild(spinner);
-    document.body.appendChild(overlay);
+
+    function showOverlay() {
+        if (!document.getElementById('translate-overlay')) {
+            document.body.appendChild(overlay);
+        }
+    }
 
     function removeOverlay() {
         overlay.style.opacity = '0';
-        setTimeout(function () {
-            overlay.parentNode && overlay.parentNode.removeChild(overlay);
-        }, 420);
+
+        setTimeout(() => {
+            overlay.remove();
+        }, 400);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
-    function getGoogtransCookie() {
-        var m = document.cookie.match(/(?:^|;\s*)googtrans=([^;]*)/);
-        return m ? decodeURIComponent(m[1]) : null;
+    // Read Google Translate cookie
+    function getCookie() {
+        const match = document.cookie.match(
+            /(?:^|;\s*)googtrans=([^;]*)/
+        );
+
+        return match
+            ? decodeURIComponent(match[1])
+            : '';
     }
 
-    function setGoogtransCookie(lang) {
-        var value = '/en/' + lang;
-        var hostname = location.hostname;
-        document.cookie = 'googtrans=' + value + '; path=/';
-        if (hostname && hostname !== 'localhost') {
-            document.cookie = 'googtrans=' + value + '; path=/; domain=' + hostname;
+    // Set Google Translate cookie
+    function setCookie(lang) {
+        const value = '/en/' + lang;
+
+        const cookie =
+            'googtrans=' + encodeURIComponent(value) +
+            '; path=/; max-age=31536000; SameSite=Lax';
+
+        document.cookie = cookie;
+
+        // Try root domain for www and subdomains
+        const parts = location.hostname.split('.');
+
+        if (parts.length >= 2) {
+            const rootDomain = parts.slice(-2).join('.');
+
+            document.cookie =
+                cookie + '; domain=.' + rootDomain;
         }
     }
 
+    // Detect country from IP
     async function getCountryCode() {
-        try {
-            var res = await fetch('https://apip.cc/json');
-            var data = await res.json();
-            return (data.CountryCode || '').toUpperCase();
-        } catch (e) {
+
+        const apis = [
+            async () => {
+                const r = await fetch(
+                    'https://ipapi.co/json/',
+                    { cache: 'no-store' }
+                );
+
+                if (!r.ok) throw new Error('IPAPI error');
+
+                const d = await r.json();
+
+                return d.country_code;
+            },
+
+            async () => {
+                const r = await fetch(
+                    'https://api.country.is/',
+                    { cache: 'no-store' }
+                );
+
+                if (!r.ok) throw new Error('Country API error');
+
+                const d = await r.json();
+
+                return d.country;
+            },
+
+            async () => {
+                const r = await fetch(
+                    'https://apip.cc/json',
+                    { cache: 'no-store' }
+                );
+
+                if (!r.ok) throw new Error('APIP error');
+
+                const d = await r.json();
+
+                return d.CountryCode;
+            }
+        ];
+
+        for (const api of apis) {
             try {
-                var res2 = await fetch('https://ipapi.co/json/');
-                var data2 = await res2.json();
-                return (data2.country_code || '').toUpperCase();
-            } catch (e2) {
-                return '';
+                const code = await api();
+
+                if (code && /^[A-Za-z]{2}$/.test(code)) {
+                    return code.toUpperCase();
+                }
+
+            } catch (e) {
+                console.warn('IP detection failed:', e);
             }
         }
+
+        return '';
     }
 
-    // ── Wait for Google Translate to finish ────────────────────────────
-    function waitForTranslation(timeout) {
-        return new Promise(function (resolve) {
-            // Google Translate adds class "translated-ltr" / "translated-rtl" to <html>
-            var html = document.documentElement;
-            if (/translated-(ltr|rtl)/.test(html.className)) {
-                return resolve();
+    // Wait for Google Translate
+    function waitForTranslation(timeout = 12000) {
+
+        return new Promise(resolve => {
+
+            const html = document.documentElement;
+
+            if (
+                /translated-(ltr|rtl)/.test(html.className)
+            ) {
+                resolve(true);
+                return;
             }
-            var timer = setTimeout(resolve, timeout || 5000);
-            var obs = new MutationObserver(function () {
-                if (/translated-(ltr|rtl)/.test(html.className)) {
+
+            const observer = new MutationObserver(() => {
+
+                if (
+                    /translated-(ltr|rtl)/.test(html.className)
+                ) {
                     clearTimeout(timer);
-                    obs.disconnect();
-                    resolve();
+                    observer.disconnect();
+                    resolve(true);
                 }
             });
-            obs.observe(html, { attributes: true, attributeFilter: ['class'] });
+
+            observer.observe(html, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+
+            const timer = setTimeout(() => {
+                observer.disconnect();
+                resolve(false);
+            }, timeout);
         });
     }
 
-    // ── Main ──────────────────────────────────────────────────────────────
+    // Main
     async function run() {
-        var existing = getGoogtransCookie();
 
-        // Cookie already set to a non-English language → wait for translation then hide overlay
-        if (existing && existing !== '/en/en' && existing !== '/en/' && existing !== '/en/undefined') {
-            await waitForTranslation(6000);
+        showOverlay();
+
+        try {
+
+            const country = await getCountryCode();
+
+            console.log('[Translate] Country:', country);
+
+            const targetLang =
+                LANG_MAP[country] || DEFAULT_LANG;
+
+            console.log('[Translate] Target language:', targetLang);
+
+            const currentCookie = getCookie();
+
+            const expectedCookie = '/en/' + targetLang;
+
+            // Only reload if language has changed
+            if (currentCookie !== expectedCookie) {
+
+                setCookie(targetLang);
+
+                console.log(
+                    '[Translate] Language changed:',
+                    expectedCookie
+                );
+
+                location.reload();
+                return;
+            }
+
+            // Existing language is correct
+            if (targetLang !== 'en') {
+                await waitForTranslation(12000);
+            }
+
+        } catch (error) {
+
+            console.error('[Translate] Error:', error);
+
+        } finally {
+
             removeOverlay();
-            return;
         }
-
-        // First visit: detect country and set cookie
-        var countryCode = await getCountryCode();
-        var targetLang = countryCode ? LANG_MAP[countryCode] : null;
-
-        if (!targetLang) {
-            // English-speaking or unknown country → no translation needed
-            removeOverlay();
-            return;
-        }
-
-        setGoogtransCookie(targetLang);
-        location.reload();
     }
 
-    // Run after body is ready
     if (document.body) {
         run();
     } else {
-        document.addEventListener('DOMContentLoaded', run);
+        document.addEventListener(
+            'DOMContentLoaded',
+            run,
+            { once: true }
+        );
     }
+
 })();
