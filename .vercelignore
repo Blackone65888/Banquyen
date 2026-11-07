@@ -1,0 +1,15 @@
+node_modules
+.git
+*.log
+*.md
+!README.md
+build.bat
+build.sh
+build-minify.bat
+minify.bat
+obfuscate.bat
+public/js/*.min.js
+public/js/*.obf.js
+.vscode
+.idea
+
